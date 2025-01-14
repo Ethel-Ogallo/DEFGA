@@ -64,13 +64,10 @@ gender_map <- employment_data |>
 
 
 # breaks
-breaks_manual <- c(0, 300000, 600000, 900000, 120000, 1820292)
-breaks_manual2 <- c(0, 150000, 300000, 450000, 600000, 910146)
+breaks_manual <- c(0, 100000, 200000, 350000, 500000, 600000,1500000)
+breaks_manual2 <- c(0, 70000, 150000, 200000, 250000, 350000,700000)
 
 # colors
-colors <- c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6")
-
-
-
+colors <- c("#9ebcda", "#BC2C1A")
 
 

@@ -48,7 +48,7 @@ ui <- navbarPage(
 
         .hero {
           position: absolute;
-          background-image: url('austria_landingpage.png'); 
+          background-image: url('job-5382501_1280.jpg'); 
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
@@ -297,16 +297,15 @@ server <- function(input, output, session) {
       output$map <- renderGirafe({
         gg <- ggplot(data1) +
           geom_sf_interactive(aes(fill = total_employed, geometry = geometry,
-                                  tooltip = paste(nuts_name,
-                                                  "<br>Region: ", region, 
+                                  tooltip = paste("<br>NUTS3: ",nuts_name,
+                                                  "<br>Type: ", region, 
                                                   "<br>Employed: ", total_employed,
                                                   "<br>Year: ", year))) +
-          scale_fill_gradientn(
-            colors = colors, 
-            #labels = scales::comma(quantiles1),  # Rescale the quantiles to match the gradient
-            breaks = breaks_manual,  # Use the quantiles as breaks
-            name = "Employed"
-          ) + 
+          scale_fill_gradient(
+            low = "#F7EF99",  # Color for the minimum value
+            high = "#BC2C1A", # Color for the maximum value
+            name = "Employed" # Legend title
+          )  + 
           labs(title = paste("Employment by Region in", selected_maptime)) +
           theme_void() +
           theme(legend.position = "right", 
@@ -337,16 +336,16 @@ server <- function(input, output, session) {
       output$map <- renderGirafe({
         gg <- ggplot(gender_data) +
           geom_sf_interactive(aes(fill = total_employed, geometry = geometry,
-                                  tooltip = paste("Region: ", nuts_name, 
+                                  tooltip = paste("NUTS3:", nuts_name,
+                                                  "<br>Type: ", region,
                                                   "<br>Gender: ", gender,
                                                   "<br>Employed: ", total_employed,
                                                   "<br>Year: ", year))) +
-          scale_fill_gradientn(
-            colors = colors, 
-            #labels = scales::comma(quantiles1),  # Rescale the quantiles to match the gradient
-            breaks = breaks_manual2,  # Use the quantiles as breaks
-            name = "Employed"
-          ) +
+          scale_fill_gradient(
+            low = "#F7EF99",  # Color for the minimum value
+            high = "#BC2C1A", # Color for the maximum value
+            name = "Employed" # Legend title
+          )  +
           labs(title = paste("Employment by Gender in", selected_maptime)) +
           theme_void() +
           theme(legend.position = "right",
