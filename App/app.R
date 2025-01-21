@@ -25,7 +25,7 @@ ui <- navbarPage(
           padding: 0;
           height: 100%;
           width: 100%;
-          overflow: hidden;
+          #overflow: hidden;
           font-family: Arial, sans-serif;
         }
         
@@ -52,7 +52,7 @@ ui <- navbarPage(
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
-          height: 100vh; /* Full viewport height */
+          height: 90vh; /* Full viewport height */
           width: 100vw; /* Full viewport width */
           display: flex;
           justify-content: center;
@@ -99,6 +99,18 @@ ui <- navbarPage(
         .hero button:hover {
           background-color: #0056b3;
         }
+        
+        /* Make the body scrollable while keeping the full-screen hero section */
+        .content {
+          overflow-y: auto;
+          height: calc(100vh - 100px); /* Adjust this if needed for your header height */
+        }
+      
+        /* Ensure the charts don't get cut off */
+        .chart-container {
+          overflow-y: scroll;
+          max-height: 100vh; /* Keep the charts inside the viewport */
+        }
       "))
     ),
     
@@ -121,7 +133,7 @@ ui <- navbarPage(
       p(
         style = "font-size: 18px; line-height: 1.6;",
         "Welcome!"
-        ),
+      ),
       p(  
         style = "font-size: 18px; line-height: 1.6;",
         "The Development of Employment Figures by Gender in Austria platform explores gender-based employment 
@@ -162,11 +174,12 @@ ui <- navbarPage(
       column(
         5,
         br(),
+        uiOutput("map_title"),  # Title for the map
         withSpinner(
-          girafeOutput(
-            'line_chart',
+          leafletOutput(
+            'map',
             width = '100%',
-            height = '1000px'
+            height = '500px'
           )
         ),
         type = 3,
@@ -187,8 +200,8 @@ ui <- navbarPage(
           selectInput(
             inputId = 'gender',
             label = 'Select Gender:',
-            choices = c('total', 'Male', 'Female'),
-            selected = 'total'
+            choices = c('Male', 'Female'),
+            selected = 'Male'
           )
         ),
         br(),
@@ -207,30 +220,22 @@ ui <- navbarPage(
         5,
         withSpinner(
           girafeOutput(
-            'map',
+            'pie_chart',
             width = '100%',
-            height = '700px'
+            height = '500px'
           ),
           type = '3',
           color.background = 'white'
         )
       )
     ),
-    # fluidRow(
-    #   #column(7),
-    #   column(12,
-    #          sliderInput(
-    #            inputId = "year",
-    #            label = "Year:",
-    #            min = 2013,               # Start year
-    #            max = 2022,               # End year
-    #            value = 2013,             # Default selected year
-    #            step = 1,                 # Increment in years
-    #            animate = TRUE            # Optional: Add animation controls
-    #          )
-    #   )
-    #   
-    # )
+    fluidRow(
+        girafeOutput('line_chart', 
+                     width = '100%', 
+                     height = '500px')
+ 
+    )
+    
   )
 )
 
@@ -242,11 +247,246 @@ server <- function(input, output, session) {
     updateNavbarPage(session, inputId = "main_tabs", selected = "About")
   })
   
+  #Employment map----
+  observeEvent(c(input$comparison, input$gender, input$map_time), {
+    selected_comparison <- input$comparison
+    selected_gender <- input$gender
+    selected_maptime <- input$map_time
+    
+    # Update the dynamic title based on the selected inputs for the map
+    output$map_title <- renderUI({
+      title_text <- paste("Employment figures by", selected_comparison)
+      if (selected_comparison == "Gender") {
+        title_text <- paste(title_text, " ", selected_gender)
+      }
+      title_text <- paste(title_text, " ", selected_maptime)
+      
+      tags$div(
+        style = "font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;",
+        title_text
+      )
+    })
+    
+    # Filter the data based on the selected year
+    data1 <- region_map |> 
+      filter(year == selected_maptime)  # Filter based on selected year
+    
+    # Transform the CRS to WGS84 (EPSG:4326) if necessary
+    data1 <- st_transform(data1, crs = 4326)  # Transform to WGS84 (long-lat)
+    
+    # Check the selected comparison (Region or Gender) and filter accordingly
+    if (selected_comparison == "Region") {
+      
+      # Render the region map with click to get information and highlight in gray on hover
+      output$map <- renderLeaflet({
+        pal <- colorNumeric(
+          palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
+          domain = data1$total_employed
+        )
+        
+        leaflet(data1) %>%
+          addProviderTiles(providers$CartoDB.Positron) %>%
+          addPolygons(
+            fillColor = ~pal(total_employed),
+            color = "#BDBDBD",  # Default border color
+            weight = 0.5,
+            opacity = 1,
+            fillOpacity = 0.7,
+            # Popup with all data details
+            popup = ~paste0(
+              "<b>NUTS3: </b>", nuts_name, "<br>",
+              "<b>Type: </b>", region, "<br>",
+              "<b>Employed: </b>", total_employed, "<br>",
+              "<b>Year: </b>", year
+            ),
+            highlight = highlightOptions(
+              weight = 0.5,  # Keep the border thin
+              color = "#BDBDBD",  # Keep border color unchanged
+              fillColor = "gray",  # Highlight the polygon with gray fill on hover
+              fillOpacity = 0.7,
+              bringToFront = TRUE
+            )
+          ) %>%
+          addLegend(
+            position = "bottomright",
+            pal = pal,
+            values = data1$total_employed,
+            title = "Employment",
+            opacity = 0.7,
+            labels = c("0-100k", "100k-200k", "200k-350k", "350k-500k", ">500k")
+          ) %>%
+          # Set the initial view to Austria with appropriate zoom
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
+          # Set the map bounds to Austria to restrict panning
+          setMaxBounds(
+            lng1 = 9.5, lat1 = 46.5,  # Southwest corner
+            lng2 = 17.0, lat2 = 49.0   # Northeast corner
+          )
+      })
+      
+    } else if (selected_comparison == "Gender") {
+      
+      # Filter the data by gender and year
+      gender_data <- gender_map |> 
+        filter(gender == selected_gender, year == selected_maptime)  # Filter by gender and year
+      
+      # Transform the CRS to WGS84 (EPSG:4326) if necessary
+      gender_data <- st_transform(gender_data, crs = 4326)  # Transform to WGS84 (long-lat)
+      
+      # Render the gender map with click to get information and highlight in gray on hover
+      output$map <- renderLeaflet({
+        pal <- colorNumeric(
+          palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
+          domain = gender_data$total_employed
+        )
+        
+        leaflet(gender_data) %>%
+          addProviderTiles(providers$CartoDB.Positron) %>%
+          addPolygons(
+            fillColor = ~pal(total_employed),
+            color = "#BDBDBD",  # Default border color
+            weight = 0.5,
+            opacity = 1,
+            fillOpacity = 0.7,
+            # Popup with all data details
+            popup = ~paste0(
+              "<b>NUTS3: </b>", nuts_name, "<br>",
+              "<b>Type: </b>", region, "<br>",
+              "<b>Gender: </b>", gender, "<br>",
+              "<b>Employed: </b>", total_employed, "<br>",
+              "<b>Year: </b>", year
+            ),
+            highlight = highlightOptions(
+              weight = 0.5,  # Keep the border thin
+              color = "#BDBDBD",  # Keep border color unchanged
+              fillColor = "gray",  # Highlight the polygon with gray fill on hover
+              fillOpacity = 0.7,
+              bringToFront = TRUE
+            )
+          ) %>%
+          addLegend(
+            position = "bottomright",
+            pal = pal,
+            values = gender_data$total_employed,
+            title = "Employment",
+            opacity = 0.7,
+            labels = c("0-70k", "70k-150k", "150k-200k", "200k-250k", ">250k")
+          ) %>%
+          # Set the initial view to Austria with appropriate zoom
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
+          # Set the map bounds to Austria to restrict panning
+          setMaxBounds(
+            lng1 = 9.5, lat1 = 46.5,  # Southwest corner
+            lng2 = 17.0, lat2 = 49.0   # Northeast corner
+          )
+      })
+    }
+  })
+  
+  # Employment pie chart ---- 
+  observeEvent(c(input$comparison, input$gender, input$map_time), {
+    selected_comparison <- input$comparison
+    selected_gender <- input$gender
+    selected_maptime <- input$map_time
+    
+    # Filter the data based on the selected year
+    data1 <- employment_data |>  
+      filter(region %in% c("Rural", "Urban")) |>
+      group_by(region, year) |>
+      summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
+      ungroup() |>
+      filter(year == selected_maptime)
+    
+    if (selected_comparison == "Region") {
+      # Render the region map with interactive hover
+      output$pie_chart <- renderGirafe({
+        pie_chart1 <- ggplot(data1) +
+          geom_bar_interactive(
+            aes(
+              x = "", 
+              y = total_employed, 
+              fill = region,
+              tooltip = paste0(region, ": ", total_employed),
+              data_id = region
+            ), 
+            stat = "identity", 
+            width = 1
+          ) +
+          coord_polar("y") +
+          scale_fill_manual(values = c("#feb24c", "#bd0026")) +
+          labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
+          theme_void() +
+          theme(
+            plot.title = element_text(hjust = 0.5),
+            axis.text = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid = element_blank()
+          )
+        
+        girafe(
+          ggobj = pie_chart1,
+          width_svg = 7,
+          height_svg = 6,
+          options = list(
+            opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
+            opts_selection(type = "single", css = "opacity: 0.4;"),
+            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
+          )
+        )
+      })
+      
+    } else if (selected_comparison == "Gender") {
+      # Filter the data by gender and year
+      data2 <- employment_data |> 
+        filter(gender %in% c("Male", "Female")) |>
+        group_by(gender, year) |>
+        summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
+        ungroup() |>
+        filter(year == selected_maptime)
+      
+      # Render the gender map with interactive hover
+      output$pie_chart <- renderGirafe({
+        pie_chart2 <- ggplot(data2) +
+          geom_bar_interactive(
+            aes(
+              x = "", 
+              y = total_employed, 
+              fill = gender,
+              tooltip = paste0(gender, ": ", total_employed),
+              data_id = gender
+            ), 
+            stat = "identity", 
+            width = 1
+          ) +
+          coord_polar("y") +
+          scale_fill_manual(values = c("#feb24c", "#bd0026")) +
+          labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
+          theme_void() +
+          theme(
+            plot.title = element_text(hjust = 0.5),
+            axis.text = element_blank(),
+            axis.ticks = element_blank(),
+            panel.grid = element_blank()
+          )
+        
+        girafe(
+          ggobj = pie_chart2,
+          width_svg = 7,
+          height_svg = 6,
+          options = list(
+            opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
+            opts_selection(type = "single", css = "opacity: 0.4;"),
+            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
+          )
+        )
+      })
+    }
+  })
+  
   # Employment line chart----
   output$line_chart <- renderGirafe({
-    # Create the line chart using ggplot2
     line_chart <- employment_data |>
-      filter(gender %in% c("Male", "Female")) |> # Filter for male and female genders only
+      filter(gender %in% c("Male", "Female")) |>
       group_by(year, gender) |>
       summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
       ungroup() |>
@@ -254,122 +494,29 @@ server <- function(input, output, session) {
         x = year, 
         y = total_employed, 
         color = gender, 
-        group = gender,
-        tooltip = paste("Gender:", gender, "<br>Year:", year, "<br>Total Employed:", total_employed),
-        data_id = gender # Unique ID for interactive selection
+        group = gender
       )) +
-      geom_line_interactive() + # Interactive lines
-      geom_point_interactive() + # Interactive points
-      scale_x_continuous(breaks = seq(min(employment_data$year), max(employment_data$year), by = 1)) + # Show all years
-      ggtitle("Gender employment through time") +
-      theme_classic() +
-      theme(legend.position = "bottom",)
+      geom_line() +  # Basic ggplot line
+      geom_point() +  # Basic ggplot points
+      scale_color_manual(values = c("Male" = "#feb24c", "Female" = "#bd0026"))+
+      scale_x_continuous(breaks = seq(min(employment_data$year), max(employment_data$year), by = 1)) +
+      ggtitle("Gender Employment Over Time") +
+      theme_classic()+
+      theme(plot.title = element_text(hjust = 0.5))
     
-    # Render the interactive plot
-    girafe_plot1 <- girafe(
-      ggobj = line_chart,
-      width_svg = 7, 
-      height_svg = 6,
-      options = list(
-        opts_hover(css = "stroke-width: 3; cursor: pointer;"), # Highlight hovered elements
-        opts_selection(type = "single", css = "opacity: 0.4;"), # Single selection with unselected dimming
-        opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;") # Tooltip styling
+      girafe(
+        ggobj = line_chart,
+        width_svg = 9, 
+        height_svg = 5,
+        options = list(
+          opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
+          opts_selection(type = "single", css = "opacity: 0.4;"),
+          opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
+        )
       )
-    )
-    # Display the interactive plot
-    girafe_plot1
   })
-  
-  # Employment map ----
-  observeEvent(c(input$comparison, input$gender, input$map_time), {
-    selected_comparison <- input$comparison
-    selected_gender <- input$gender
-    selected_maptime <- input$map_time
-    
-    # Filter the data based on the selected year
-    data1 <- region_map %>%
-      filter(year == selected_maptime)
-    
-    # Check the selected comparison (Region or Gender) and filter accordingly
-    if (selected_comparison == "Region") {
-      
-      # Render the region map with interactive hover
-      output$map <- renderGirafe({
-        gg <- ggplot(data1) +
-          geom_sf_interactive(aes(fill = total_employed, geometry = geometry,
-                                  tooltip = paste("<br>NUTS3: ",nuts_name,
-                                                  "<br>Type: ", region, 
-                                                  "<br>Employed: ", total_employed,
-                                                  "<br>Year: ", year))) +
-          scale_fill_gradient(
-            low = "#F7EF99",  # Color for the minimum value
-            high = "#BC2C1A", # Color for the maximum value
-            name = "Employed" # Legend title
-          )  + 
-          labs(title = paste("Employment by Region in", selected_maptime)) +
-          theme_void() +
-          theme(legend.position = "right", 
-                plot.title = element_text(hjust = 0.5))  # Center title
-        
-        # Make it interactive using girafe
-        girafe_plot2 <- girafe(
-          ggobj = gg,
-          width_svg = 7, 
-          height_svg = 6,
-          options = list(
-            opts_hover(css = "stroke-width: 3; cursor: pointer;"),  # Highlight hovered elements
-            opts_selection(type = "single", css = "opacity: 0.4;"),  # Single selection with unselected dimming
-            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")  # Tooltip styling
-          )
-        )
-        
-        girafe_plot2
-      })
-      
-    } else if (selected_comparison == "Gender") {
-      
-      # Filter the data by gender and year
-      gender_data <- gender_map %>%
-        filter(gender == selected_gender, year == selected_maptime)
-      
-      # Render the gender map with interactive hover
-      output$map <- renderGirafe({
-        gg <- ggplot(gender_data) +
-          geom_sf_interactive(aes(fill = total_employed, geometry = geometry,
-                                  tooltip = paste("NUTS3:", nuts_name,
-                                                  "<br>Type: ", region,
-                                                  "<br>Gender: ", gender,
-                                                  "<br>Employed: ", total_employed,
-                                                  "<br>Year: ", year))) +
-          scale_fill_gradient(
-            low = "#F7EF99",  # Color for the minimum value
-            high = "#BC2C1A", # Color for the maximum value
-            name = "Employed" # Legend title
-          )  +
-          labs(title = paste("Employment by Gender in", selected_maptime)) +
-          theme_void() +
-          theme(legend.position = "right",
-                plot.title = element_text(hjust = 0.5))
-        
-        # Make it interactive using girafe
-        girafe_plot3 <- girafe(
-          ggobj = gg,
-          width_svg = 7, 
-          height_svg = 6,
-          options = list(
-            opts_hover(css = "stroke-width: 3; cursor: pointer;"), # Highlight hovered elements
-            opts_selection(type = "single", css = "opacity: 0.4;"), # Single selection with unselected dimming
-            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;") # Tooltip styling
-          )
-        )
-      })
-    }
-  })
-  
   
 }
 
 # Run App ----
 shinyApp(ui, server)
-
-

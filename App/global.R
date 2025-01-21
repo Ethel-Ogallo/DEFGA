@@ -12,12 +12,11 @@ pacman::p_load(sf,
                shinythemes,
                shinyWidgets,
                shinycssloaders,
-               RColorBrewer,
                gridGraphics,
                ggiraph,
                gghighlight,
                shinyjs,
-               viridis)
+               leaflet)
 
 # 2. Load data from WFS ----
 
@@ -42,7 +41,8 @@ employment_data <- employment_data |>
   mutate(year = as.integer(year), 
          gender = factor(gender, levels = c("Male", "Female", "total")),
          region = factor(region, levels = c("Rural","Urban")),
-         year_date = as.Date(year_date))
+         year_date = as.Date(year_date)) |> 
+  filter(gender %in% c("Male", "Female"))
 
 region_map <- employment_data |>
   group_by(year, region, nuts_name) |>
@@ -63,11 +63,6 @@ gender_map <- employment_data |>
   st_as_sf()
 
 
-# breaks
-breaks_manual <- c(0, 100000, 200000, 350000, 500000, 600000,1500000)
-breaks_manual2 <- c(0, 70000, 150000, 200000, 250000, 350000,700000)
-
-# colors
-colors <- c("#9ebcda", "#BC2C1A")
-
+# Suppress warnings globally
+options(warn = -1)
 
