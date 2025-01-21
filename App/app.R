@@ -27,6 +27,7 @@ ui <- navbarPage(
           width: 100%;
           #overflow: hidden;
           font-family: Arial, sans-serif;
+          background-color: #fce2cfff;
         }
         
         .navbar {
@@ -265,9 +266,9 @@ server <- function(input, output, session) {
     output$map_title <- renderUI({
       title_text <- paste("Employment figures by", selected_comparison)
       if (selected_comparison == "Gender") {
-        title_text <- paste(title_text, " ", selected_gender)
+        title_text <- paste(title_text, selected_gender)
       }
-      title_text <- paste(title_text, " ", selected_maptime)
+      title_text <- paste(title_text, selected_maptime)
       
       tags$div(
         style = "font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;",
@@ -282,16 +283,25 @@ server <- function(input, output, session) {
     # Transform the CRS to WGS84 (EPSG:4326) if necessary
     data1 <- st_transform(data1, crs = 4326)  # Transform to WGS84 (long-lat)
     
-    # Check the selected comparison (Region or Gender) and filter accordingly
+    # Define global min and max for consistency across years
+    global_min <- min(region_map$total_employed, na.rm = TRUE)
+    global_max <- max(region_map$total_employed, na.rm = TRUE)
+    
+    # Define breaks and labels for the legend
+    breaks <- c(0, 70000, 150000, 200000, 250000, global_max)
+    labels <- c("0-70k", "70k-150k", "150k-200k", "200k-250k", paste0("> ", format(global_max, big.mark = ",")))
+    
+    # Define color palette using a consistent domain
+    pal <- colorBin(
+      palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
+      bins = breaks,
+      domain = c(global_min, global_max),
+      na.color = "transparent"
+    )
+    
+    # Check the selected comparison (Region or Gender) and render the map accordingly
     if (selected_comparison == "Region") {
-      
-      # Render the region map with click to get information and highlight in gray on hover
       output$map <- renderLeaflet({
-        pal <- colorNumeric(
-          palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
-          domain = data1$total_employed
-        )
-        
         leaflet(data1) %>%
           addProviderTiles(providers$CartoDB.Positron) %>%
           addPolygons(
@@ -308,9 +318,9 @@ server <- function(input, output, session) {
               "<b>Year: </b>", year
             ),
             highlight = highlightOptions(
-              weight = 0.5,  # Keep the border thin
-              color = "#BDBDBD",  # Keep border color unchanged
-              fillColor = "gray",  # Highlight the polygon with gray fill on hover
+              weight = 0.5,
+              color = "#BDBDBD",
+              fillColor = "gray",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
@@ -318,45 +328,33 @@ server <- function(input, output, session) {
           addLegend(
             position = "bottomright",
             pal = pal,
-            values = data1$total_employed,
+            values = c(global_min, global_max),
             title = "Employment",
             opacity = 0.7,
-            labels = c("0-150k", "150k-300k", "300k-500k", "500k-1M", ">1M")
+            labFormat = function(type, cuts, p) {
+              labels
+            }
           ) %>%
-          # Set the initial view to Austria with appropriate zoom
           setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
-          # Set the map bounds to Austria to restrict panning
-          setMaxBounds(
-            lng1 = 9.5, lat1 = 46.5,  # Southwest corner
-            lng2 = 17.0, lat2 = 49.0   # Northeast corner
-          )
+          setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)  # Map bounds
       })
-      
     } else if (selected_comparison == "Gender") {
-      
-      # Filter the data by gender and year
+      # Filter gender data
       gender_data <- gender_map |> 
-        filter(gender == selected_gender, year == selected_maptime)  # Filter by gender and year
+        filter(gender == selected_gender, year == selected_maptime)
       
-      # Transform the CRS to WGS84 (EPSG:4326) if necessary
-      gender_data <- st_transform(gender_data, crs = 4326)  # Transform to WGS84 (long-lat)
+      # Transform CRS
+      gender_data <- st_transform(gender_data, crs = 4326)
       
-      # Render the gender map with click to get information and highlight in gray on hover
       output$map <- renderLeaflet({
-        pal <- colorNumeric(
-          palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
-          domain = gender_data$total_employed
-        )
-        
         leaflet(gender_data) %>%
           addProviderTiles(providers$CartoDB.Positron) %>%
           addPolygons(
             fillColor = ~pal(total_employed),
-            color = "#BDBDBD",  # Default border color
+            color = "#BDBDBD",
             weight = 0.5,
             opacity = 1,
             fillOpacity = 0.7,
-            # Popup with all data details
             popup = ~paste0(
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
@@ -365,9 +363,9 @@ server <- function(input, output, session) {
               "<b>Year: </b>", year
             ),
             highlight = highlightOptions(
-              weight = 0.5,  # Keep the border thin
-              color = "#BDBDBD",  # Keep border color unchanged
-              fillColor = "gray",  # Highlight the polygon with gray fill on hover
+              weight = 0.5,
+              color = "#BDBDBD",
+              fillColor = "gray",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
@@ -375,18 +373,15 @@ server <- function(input, output, session) {
           addLegend(
             position = "bottomright",
             pal = pal,
-            values = gender_data$total_employed,
+            values = c(global_min, global_max),
             title = "Employment",
             opacity = 0.7,
-            labels <- c("0-70k", "70k-150k", "150k-200k", "200k-250k", ">250k")
+            labFormat = function(type, cuts, p) {
+              labels
+            }
           ) %>%
-          # Set the initial view to Austria with appropriate zoom
           setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
-          # Set the map bounds to Austria to restrict panning
-          setMaxBounds(
-            lng1 = 9.5, lat1 = 46.5,  # Southwest corner
-            lng2 = 17.0, lat2 = 49.0   # Northeast corner
-          )
+          setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     }
   })
@@ -421,7 +416,7 @@ server <- function(input, output, session) {
             width = 1
           ) +
           coord_polar("y") +
-          scale_fill_manual(values = c("#feb24c", "#bd0026")) +
+          scale_fill_manual(values = c("#ffeda0", "#bd0026")) +
           labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
           theme_void() +
           theme(
@@ -467,7 +462,7 @@ server <- function(input, output, session) {
             width = 1
           ) +
           coord_polar("y") +
-          scale_fill_manual(values = c("#feb24c", "#bd0026")) +
+          scale_fill_manual(values = c("#ffeda0", "#bd0026")) +
           labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
           theme_void() +
           theme(
