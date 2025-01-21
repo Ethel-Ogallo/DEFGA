@@ -5,6 +5,9 @@ pacman::p_load(sf,
                plotly,
                dplyr,
                tidyr,
+               tidyverse,
+               httr,
+               ows4R,
                gganimate,
                lubridate,
                shinydashboard,
@@ -16,12 +19,13 @@ pacman::p_load(sf,
                ggiraph,
                gghighlight,
                shinyjs,
-               leaflet)
+               leaflet,
+               curl)
 
 # 2. Load data from WFS ----
 
-## Request data from WFS ----
-wfs_url <- "https://geoserver22s.zgis.at/geoserver/IPSDI_WT24/wfs?"
+# Request data from WFS ----
+wfs_url <- "https://geoserver22s.zgis.at/geoserver/IPSDI_WT24/wfs"
 
 wfs_request <- paste0(
   wfs_url,
@@ -33,7 +37,8 @@ wfs_request <- paste0(
 )
 
 # Read the Data from WFS
-employment_data <- st_read(dsn = wfs_request, quiet = FALSE)
+employment_data <- st_read(dsn = wfs_request, quiet = TRUE)
+
 
 # 3. Data manipulation ----
 # Preprocess the employment data: converting year to integer and gender to factor
@@ -65,4 +70,8 @@ gender_map <- employment_data |>
 
 # Suppress warnings globally
 options(warn = -1)
+
+# 
+# #SSL certificate for the WFS
+# Sys.setenv(CURL_CA_BUNDLE = "www/_.geo.sbg.ac.at.crt")
 

@@ -132,37 +132,45 @@ ui <- navbarPage(
       h3("About"),
       p(
         style = "font-size: 18px; line-height: 1.6;",
-        "Welcome!"
+        "Welcome to the Development of Employment Figures by Gender in Austria platform!"
       ),
-      p(  
+      p(
         style = "font-size: 18px; line-height: 1.6;",
-        "The Development of Employment Figures by Gender in Austria platform explores gender-based employment 
-        trends across regions in Austria from 2013 to 2022, with a specific focus on disparities in gender and 
-        urban-rural dynamics. The data used is merged employment data by gender and region from Statistics Austria and NUTS3 region data from Eurostat. 
-        The objective is to provide policymakers and educators with insights to address employment gaps and promote gender equity."
+        "This platform provides insights into employment trends across Austria from 2013 to 2022, with a focus on 
+        gender and urban-rural dynamics. The dashboard is part of a broader Spatial Data Infrastructure (SDI) that 
+        integrates open-source tools to support data storage , analysis and shairing. The SDI combines a 
+        geodatabase (PostGIS) for storing standardized data, interoperable web services (Geoserver), and this 
+        interactive dashboard(Shiny)."
+      ),
+      p(
+        style = "font-size: 18px; line-height: 1.6;",
+        "By visualizing employment trends, this platform aims to assist policymakers, educators, and researchers 
+        in addressing gender employment gaps, and supporting informed decision-making."
       ),
       h4("Acknowledgment"),
       p(
         style = "font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        "Authors:"
+        "This project was collaboratively developed by:"
       ),
       tags$ul(
         style = "font-size: 18px; line-height: 1.6; text-align: left; margin-left: left; margin-right: auto;",
         tags$li("Adana Mirzoyan"),
         tags$li("Ethel Ogallo")
       ),
+      h4("Data Sources"),
       p(
         style = "font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        "Data sources:"
+        "The platform uses data from the following sources:"
       ),
       tags$ul(
         style = "text-align: left; margin-left: left; margin-right: auto; font-size: 18px;",
         tags$li(tags$a(href = "https://www.statistik.at/", target = "_blank", "Statistics Austria")),
         tags$li(tags$a(href = "https://ec.europa.eu/eurostat", target = "_blank", "Eurostat"))
       ),
+      h4("Last Updated"),
       p(
         style = "text-align: left; font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        paste("Last Updated: ", Sys.Date())
+        paste("This dashboard was last updated on: ", Sys.Date())
       )
     )
   ),
@@ -313,7 +321,7 @@ server <- function(input, output, session) {
             values = data1$total_employed,
             title = "Employment",
             opacity = 0.7,
-            labels = c("0-100k", "100k-200k", "200k-350k", "350k-500k", ">500k")
+            labels = c("0-150k", "150k-300k", "300k-500k", "500k-1M", ">1M")
           ) %>%
           # Set the initial view to Austria with appropriate zoom
           setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
@@ -370,7 +378,7 @@ server <- function(input, output, session) {
             values = gender_data$total_employed,
             title = "Employment",
             opacity = 0.7,
-            labels = c("0-70k", "70k-150k", "150k-200k", "200k-250k", ">250k")
+            labels <- c("0-70k", "70k-150k", "150k-200k", "200k-250k", ">250k")
           ) %>%
           # Set the initial view to Austria with appropriate zoom
           setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria

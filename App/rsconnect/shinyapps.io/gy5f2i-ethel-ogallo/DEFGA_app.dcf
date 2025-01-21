@@ -1,0 +1,13 @@
+name: DEFGA_app
+title: DEFGA_app
+username: gy5f2i-ethel-ogallo
+account: gy5f2i-ethel-ogallo
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13763240
+bundleId: 9674889
+url: https://gy5f2i-ethel-ogallo.shinyapps.io/DEFGA_app/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|www/cacert.pem|www/geoserver_cert.pem
