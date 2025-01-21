@@ -1,259 +1,210 @@
-##'Development of Employment Figures by gender Austria 2013-2022
-##'Date: 11-01-2025
-##'Authors: Adana Mirzoyan, Ethel Ogallo 
-##'University of Salzburg
-##'Interactive dashboard that visualizes the trend in employment and disparity by gender and region
-
 source('global.R')
-
-# UI ----
+# UI-----
 ui <- navbarPage(
-  title = "DEFGA",  # App title
-  id = "main_tabs",  # Assign an ID for controlling navigation
-  theme = bslib::bs_theme(),  # Optional: Apply a theme
+  title = "DEFGA",
+  id = "tabs", # For programmatic navigation
   
-  # Home Page ----
+  # Home Tab -----
   tabPanel(
-    "Home", 
-    useShinyjs(),  # Enable shinyjs for interactivity
-    
-    # Head for custom styling
-    tags$head(
-      tags$style(HTML("
-        body, html {
-          margin: 0;
-          padding: 0;
-          height: 100%;
-          width: 100%;
-          #overflow: hidden;
-          font-family: Arial, sans-serif;
-          background-color: #fce2cfff;
-        }
-        
-        .navbar {
-          background-color: grey; /* Navbar color */
-          padding: 10px 20px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .navbar a {
-          text-decoration: none;
-          color: #337ab7;
-          padding: 0 15px;
-          font-weight: bold;
-        }
-
-        .navbar a:hover {
-          color: #337ab7;
-        }
-
-        .hero {
-          position: absolute;
-          background-image: url('job-5382501_1280.jpg'); 
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          height: 90vh; /* Full viewport height */
-          width: 100vw; /* Full viewport width */
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          color: white;
-          text-align: center;
-          filter: brightness(80%); /* Slight transparency effect */
-        }
-        
-        .hero::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.5); /* Additional transparency overlay */
-          z-index: -1;
-        }
-
-        .hero h1 {
-          font-size: 4rem;
-          margin: 0;
-          text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        .hero p {
-          font-size: 2rem;
-          margin-top: 20px;
-          text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-        }
-
-        .hero button {
-          margin-top: 20px;
-          padding: 10px 20px;
-          font-size: 1.25rem;
-          background-color: #007bff;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-        }
-
-        .hero button:hover {
-          background-color: #0056b3;
-        }
-        
-        /* Make the body scrollable while keeping the full-screen hero section */
-        .content {
-          overflow-y: auto;
-          height: calc(100vh - 100px); /* Adjust this if needed for your header height */
-        }
-      
-        /* Ensure the charts don't get cut off */
-        .chart-container {
-          overflow-y: scroll;
-          max-height: 100vh; /* Keep the charts inside the viewport */
-        }
-      "))
+    title = "Home",
+    # Initial narrow image section with title 
+    tags$div(
+      style = "
+      position: relative; 
+      background-image: url('job-5382501_1280.jpg'); 
+      background-size: cover;
+      background-position: center;
+      height: 70vh; /* Reduced height for the initial banner */
+      width: 100vw; 
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+    ",
+      # Add a semi-transparent overlay
+      tags$div(
+        style = "
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.6); /* Dark overlay */
+        z-index: 1;
+      "
+      ),
+      # Main content (title and Get Started button)
+      tags$div(
+        style = "
+        position: relative;
+        z-index: 2;
+      ",
+        h1("Development of Employment Figures by Gender, Austria", style = "font-size: 40px;color: #FFDEC7; margin-bottom: 20px;"),
+      )
     ),
-    
-    # Hero Section for Home Page
-    div(class = "hero",
-        div(
-          h1("DEFGA"),
-          p("Development of Employment Figures by Gender Austria 2013-2022"),
-          actionButton("get_started", "Get started »")
-        )
-    )
-  ),
-  
-  # About Page ----
-  tabPanel(
-    "About",
-    div(
-      style = "margin: 40px; max-width: 800px; margin-left: auto; margin-right: auto;",
-      h3("About"),
-      p(
-        style = "font-size: 18px; line-height: 1.6;",
-        "Welcome to the Development of Employment Figures by Gender in Austria platform!"
-      ),
-      p(
-        style = "font-size: 18px; line-height: 1.6;",
-        "This platform provides insights into employment trends across Austria from 2013 to 2022, with a focus on 
-        gender and urban-rural dynamics. The dashboard is part of a broader Spatial Data Infrastructure (SDI) that 
-        integrates open-source tools to support data storage , analysis and shairing. The SDI combines a 
-        geodatabase (PostGIS) for storing standardized data, interoperable web services (Geoserver), and this 
-        interactive dashboard(Shiny)."
-      ),
-      p(
-        style = "font-size: 18px; line-height: 1.6;",
-        "By visualizing employment trends, this platform aims to assist policymakers, educators, and researchers 
-        in addressing gender employment gaps, and supporting informed decision-making."
-      ),
-      h4("Acknowledgment"),
-      p(
-        style = "font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        "This project was collaboratively developed by:"
-      ),
+    tags$div(
+      id = "overview_section", 
+      style = "
+      background-color: #2F2D2C ; 
+      padding: 50px;
+      max-width: 100vw; 
+      margin: 0 auto; /* Minimal space */
+      border-radius: 0; /* Remove border radius for continuation */
+      box-shadow: none; /* Remove shadow for seamless look */
+      color: #ffd8be;
+      font-family: 'Arial', sans-serif;
+    ",
+      # Overview content
+      h3("Overview", style = "font-size: 32px; font-weight: bold; color: #ffd8be; margin-bottom: 20px;"),
+      p("This platform provides insights into employment trends across Austria from 2013 to 2022, with a focus on gender and urban-rural dynamics. The visualizations aim to help policymakers, educators, and researchers in identifying and addressing gender employment gaps."),
+      p("By exploring the trends, the platform supports informed decision-making and contributes to bridging gender-related employment disparities."),
+      h4("Acknowledgment", style = "font-size: 20px; font-weight: bold; margin-top: 20px;color: #ffd8be;"),
       tags$ul(
-        style = "font-size: 18px; line-height: 1.6; text-align: left; margin-left: left; margin-right: auto;",
         tags$li("Adana Mirzoyan"),
         tags$li("Ethel Ogallo")
       ),
-      h4("Data Sources"),
-      p(
-        style = "font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        "The platform uses data from the following sources:"
-      ),
+      h4("Data Sources", style = "font-size: 20px; font-weight: bold;color: #ffd8be; margin-top: 20px;"),
       tags$ul(
-        style = "text-align: left; margin-left: left; margin-right: auto; font-size: 18px;",
         tags$li(tags$a(href = "https://www.statistik.at/", target = "_blank", "Statistics Austria")),
         tags$li(tags$a(href = "https://ec.europa.eu/eurostat", target = "_blank", "Eurostat"))
       ),
-      h4("Last Updated"),
-      p(
-        style = "text-align: left; font-size: 18px; line-height: 1.6; margin-top: 20px;",
-        paste("This dashboard was last updated on: ", Sys.Date())
+      p(style = "font-size: 18px; line-height: 1.6;", paste("Last updated on:", Sys.Date())),
+      
+      # Continue button at the bottom of the overview
+      br(),
+      actionButton(
+        inputId = "continue_to_employment", 
+        label = "Continue to Dashboard >>", 
+        style = "
+        background-color: #9ecae1; /* Same lighter color */
+        color: black; 
+        padding: 10px 20px; 
+        font-size: 16px; 
+        border-radius: 5px; 
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        "
       )
     )
   ),
   
-  # Gender-Employment Page ----
+  # Employment Trend Tab -----
   tabPanel(
-    "Employment trend",
-    fluidRow(
-      column(
-        5,
-        br(),
-        uiOutput("map_title"),  # Title for the map
-        withSpinner(
-          leafletOutput(
-            'map',
-            width = '100%',
-            height = '500px'
+    title = "Employment Trend",
+    dashboardPage(
+      dashboardHeader(disable = TRUE), # No header for the dashboard layout
+      dashboardSidebar( disable = TRUE
+      ),
+      dashboardBody(
+        shinyDashboardThemes(theme = "flat_red"),
+        fluidRow(
+          column(12,
+                 div(
+                   style = "display: flex; justify-content: center; align-items: center; gap: 20px;",
+                   valueBoxOutput("total_employed", width = 3),
+                   valueBoxOutput("male_employed", width = 3),
+                   valueBoxOutput("female_employed", width = 3)
+                 )
           )
         ),
-        type = 3,
-        color.background = 'white'
-      ),
-      column(
-        2,
-        br(),
-        selectInput(
-          inputId = 'comparison',
-          label = 'Select Comparison:',
-          choices = c('Region', 'Gender'),
-          selected = 'Region'
-        ),
-        br(),
-        conditionalPanel(
-          condition = "input.comparison == 'Gender'",
-          selectInput(
-            inputId = 'gender',
-            label = 'Select Gender:',
-            choices = c('Male', 'Female'),
-            selected = 'Male'
-          )
-        ),
-        br(),
-        sliderInput(
-          inputId = "map_time",
-          label = "Year:",
-          min = 2013,               
-          max = 2022,               
-          value = 2013,             
-          step = 1,                 
-          animate = TRUE,           
-          sep = ""
-        )
-      ),
-      column(
-        5,
-        withSpinner(
-          girafeOutput(
-            'pie_chart',
-            width = '100%',
-            height = '500px'
+        fluidRow(
+          column(
+            5,
+            br(),
+            uiOutput("map_title"),
+            withSpinner(
+              leafletOutput(
+                'map',
+                width = '100%',
+                height = '600px'
+              ),
+              # spinner.type = 3
+            )
           ),
-          type = '3',
-          color.background = 'white'
+          column(
+            2,
+            selectInput(
+              inputId = 'comparison',
+              label = '1. Select Comparison:',
+              choices = c('Region', 'Gender'),
+              selected = 'Region'
+            ),
+            br(),
+            conditionalPanel(
+              condition = "input.comparison == 'Gender'",
+              selectInput(
+                inputId = 'gender',
+                label = '2. Select Gender:',
+                choices = c('Male', 'Female'),
+                selected = 'Male'
+              )
+            ),
+            br(),
+            sliderInput(
+              inputId = "map_time",
+              label = "3. Select Year:",
+              min = 2013,
+              max = 2022,
+              value = 2013,
+              step = 1,
+              animate = TRUE,
+              sep = ""
+            )
+          ),
+          column(
+            5,
+            withSpinner(
+              girafeOutput(
+                'line_chart',
+                width = '100%',
+                height = '700px'
+              )
+            )
+          )
         )
       )
-    ),
-    fluidRow(
-        girafeOutput('line_chart', 
-                     width = '100%', 
-                     height = '500px')
- 
     )
-    
   )
 )
 
-
-# SERVER ----
+# Define server logic ----
 server <- function(input, output, session) {
-  # Navigate to "About" page when "Get started" is clicked
+  # Scroll to the overview section when "Get Started" is clicked
   observeEvent(input$get_started, {
-    updateNavbarPage(session, inputId = "main_tabs", selected = "About")
+    shinyjs::runjs('$("html, body").animate({ scrollTop: $("#overview_section").offset().top }, 1000);')
+  })
+  
+  # Navigate to Employment Trends page when "Continue to Employment Trends" is clicked
+  observeEvent(input$continue_to_employment, {
+    updateNavbarPage(session, "tabs", "Employment Trend")
+  })
+  
+  # value boxes ----
+  output$total_employed <- renderValueBox({
+    total_employed <- sum(employment_data$num_employed[employment_data$year == input$map_time], na.rm = TRUE)
+    total_employed_formatted <- prettyNum(total_employed, big.mark = ",")  # Adding commas
+    valueBox(
+      total_employed_formatted, "Total Employed", icon = icon("briefcase"), color = "purple"
+    )
+  })
+  
+  output$male_employed <- renderValueBox({
+    male_employed <- sum(employment_data$num_employed[employment_data$gender == "Male" & employment_data$year == input$map_time], na.rm = TRUE)
+    male_employed_formatted <- prettyNum(male_employed, big.mark = ",")  # Adding commas
+    valueBox(
+      male_employed_formatted, "Male Employed", icon = icon("male"), color = "aqua"
+    )
+  })
+  
+  output$female_employed <- renderValueBox({
+    female_employed <- sum(employment_data$num_employed[employment_data$gender == "Female" & employment_data$year == input$map_time], na.rm = TRUE)
+    female_employed_formatted <- prettyNum(female_employed, big.mark = ",")  # Adding commas
+    valueBox(
+      female_employed_formatted, "Female Employed", icon = icon("female"), color = "fuchsia"
+    )
   })
   
   #Employment map----
@@ -262,40 +213,30 @@ server <- function(input, output, session) {
     selected_gender <- input$gender
     selected_maptime <- input$map_time
     
-    # Update the dynamic title based on the selected inputs for the map
-    output$map_title <- renderUI({
-      title_text <- paste("Employment figures by", selected_comparison)
-      if (selected_comparison == "Gender") {
-        title_text <- paste(title_text, selected_gender)
-      }
-      title_text <- paste(title_text, selected_maptime)
-      
-      tags$div(
-        style = "font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;",
-        title_text
-      )
-    })
-    
     # Filter the data based on the selected year
     data1 <- region_map |> 
-      filter(year == selected_maptime)  # Filter based on selected year
+      filter(year == selected_maptime)
     
     # Transform the CRS to WGS84 (EPSG:4326) if necessary
-    data1 <- st_transform(data1, crs = 4326)  # Transform to WGS84 (long-lat)
+    data1 <- st_transform(data1, crs = 4326)
     
     # Define global min and max for consistency across years
-    global_min <- min(region_map$total_employed, na.rm = TRUE)
-    global_max <- max(region_map$total_employed, na.rm = TRUE)
+    global_min1 <- min(region_map$total_employed, na.rm = TRUE)
+    global_max1 <- max(region_map$total_employed, na.rm = TRUE)
     
-    # Define breaks and labels for the legend
-    breaks <- c(0, 40000, 110000, 180000, 250000, global_max)
-    labels <- c("0-40k", "40k-110k", "110k-180k", "180k-250k", paste0("> ", format(global_max, big.mark = ",")))
+    breaks1 <- c(0, 40000, 110000, 180000, 250000, global_max1)
+    labels1 <- c("0-40k", "40k-110k", "110k-180k", "180k-250k", paste0("> ", format(global_max1, big.mark = ","))) 
     
-    # Define color palette using a consistent domain
+    # Define color palettes for Male, Female, and Region
+    male_palette <- c("#e0f7fa", "#b3e5fc", "#81d4fa", "#4fc3f7", "#0288d1")
+    female_palette <- c("#fce4ec", "#f8bbd0", "#f48fb1", "#f06292", "#d81b60")
+    region_palette <- c("#f3e5f5", "#e1bee7", "#ce93d8", "#ba68c8", "#8e24aa")
+    
+    # Select the palette dynamically based on the comparison type
     pal <- colorBin(
-      palette = c("#f3e5f5", "#e1bee7", "#ce93d8", "#ba68c8", "#8e24aa"),
-      bins = breaks,
-      domain = c(global_min, global_max),
+      palette = if (selected_comparison == "Region") region_palette else if (selected_gender == "Male") male_palette else female_palette,
+      bins = breaks1,
+      domain = c(global_min1, global_max1),
       na.color = "transparent"
     )
     
@@ -306,11 +247,10 @@ server <- function(input, output, session) {
           addProviderTiles(providers$CartoDB.Positron) %>%
           addPolygons(
             fillColor = ~pal(total_employed),
-            color = "#BDBDBD",  # Default border color
+            color = "#BDBDBD",
             weight = 0.5,
             opacity = 1,
             fillOpacity = 0.7,
-            # Popup with all data details
             popup = ~paste0(
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
@@ -320,7 +260,7 @@ server <- function(input, output, session) {
             highlight = highlightOptions(
               weight = 0.5,
               color = "#BDBDBD",
-              fillColor = "gray",
+              fillColor = "#f03b20",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
@@ -328,15 +268,15 @@ server <- function(input, output, session) {
           addLegend(
             position = "bottomright",
             pal = pal,
-            values = c(global_min, global_max),
-            title = "Employment",
+            values = c(global_min1, global_max1),
+            title = "No. employed",
             opacity = 0.7,
             labFormat = function(type, cuts, p) {
-              labels
+              labels1
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
-          setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)  # Map bounds
+          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
+          setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     } else if (selected_comparison == "Gender") {
       # Filter gender data
@@ -346,21 +286,11 @@ server <- function(input, output, session) {
       # Transform CRS
       gender_data <- st_transform(gender_data, crs = 4326)
       
-      # Define global min and max for consistency across years
       global_min2 <- min(gender_map$total_employed, na.rm = TRUE)
       global_max2 <- max(gender_map$total_employed, na.rm = TRUE)
       
-      # Define breaks and labels for the legend
-      breaks2 <- c(0, 20000, 50000, 80000, 130000, global_max)
-      labels2 <- c("0-20k", "20k-50k", "50k-80k", "80k-130k", paste0("> ", format(global_max, big.mark = ",")))
-      
-      # Define color palette using a consistent domain
-      pal2 <- colorBin(
-        palette = c("#e0f7fa", "#b3e5fc", "#81d4fa", "#4fc3f7", "#0288d1"),
-        bins = breaks2,
-        domain = c(global_min2, global_max2),
-        na.color = "transparent"
-      )
+      breaks2 <- c(0, 20000, 50000, 80000, 130000, global_max2)
+      labels2 <- c("0-20k", "20k-50k", "50k-80k", "80k-130k",paste0("> ", format(global_max2, big.mark = ",")))
       
       output$map <- renderLeaflet({
         leaflet(gender_data) %>%
@@ -381,161 +311,68 @@ server <- function(input, output, session) {
             highlight = highlightOptions(
               weight = 0.5,
               color = "#BDBDBD",
-              fillColor = "gray",
+              fillColor = "#f03b20",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
           ) %>%
           addLegend(
             position = "bottomright",
-            pal = pal2,
+            pal = pal,
             values = c(global_min2, global_max2),
-            title = "Employment",
+            title = "No. employed",
             opacity = 0.7,
             labFormat = function(type, cuts, p) {
               labels2
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
+          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
-      })
-    }
-  })
-  
-  # Employment pie chart ---- 
-  observeEvent(c(input$comparison, input$gender, input$map_time), {
-    selected_comparison <- input$comparison
-    selected_gender <- input$gender
-    selected_maptime <- input$map_time
-    
-    # Filter the data based on the selected year
-    data1 <- employment_data |>  
-      filter(region %in% c("Rural", "Urban")) |>
-      group_by(region, year) |>
-      summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
-      ungroup() |>
-      filter(year == selected_maptime)
-    
-    if (selected_comparison == "Region") {
-      # Render the region map with interactive hover
-      output$pie_chart <- renderGirafe({
-        pie_chart1 <- ggplot(data1) +
-          geom_bar_interactive(
-            aes(
-              x = "", 
-              y = total_employed, 
-              fill = region,
-              tooltip = paste0(region, ": ", total_employed),
-              data_id = region
-            ), 
-            stat = "identity", 
-            width = 1
-          ) +
-          coord_polar("y") +
-          scale_fill_manual(values = c("#ffeda0", "#bd0026")) +
-          labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
-          theme_void() +
-          theme(
-            plot.title = element_text(hjust = 0.5),
-            axis.text = element_blank(),
-            axis.ticks = element_blank(),
-            panel.grid = element_blank()
-          )
-        
-        girafe(
-          ggobj = pie_chart1,
-          width_svg = 7,
-          height_svg = 6,
-          options = list(
-            opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
-            opts_selection(type = "single", css = "opacity: 0.4;"),
-            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
-          )
-        )
-      })
-      
-    } else if (selected_comparison == "Gender") {
-      # Filter the data by gender and year
-      data2 <- employment_data |> 
-        filter(gender %in% c("Male", "Female")) |>
-        group_by(gender, year) |>
-        summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
-        ungroup() |>
-        filter(year == selected_maptime)
-      
-      # Render the gender map with interactive hover
-      output$pie_chart <- renderGirafe({
-        pie_chart2 <- ggplot(data2) +
-          geom_bar_interactive(
-            aes(
-              x = "", 
-              y = total_employed, 
-              fill = gender,
-              tooltip = paste0(gender, ": ", total_employed),
-              data_id = gender
-            ), 
-            stat = "identity", 
-            width = 1
-          ) +
-          coord_polar("y") +
-          scale_fill_manual(values = c("#ffeda0", "#bd0026")) +
-          labs(title = paste("Employment by", selected_comparison, selected_maptime)) +
-          theme_void() +
-          theme(
-            plot.title = element_text(hjust = 0.5),
-            axis.text = element_blank(),
-            axis.ticks = element_blank(),
-            panel.grid = element_blank()
-          )
-        
-        girafe(
-          ggobj = pie_chart2,
-          width_svg = 7,
-          height_svg = 6,
-          options = list(
-            opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
-            opts_selection(type = "single", css = "opacity: 0.4;"),
-            opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
-          )
-        )
       })
     }
   })
   
   # Employment line chart----
   output$line_chart <- renderGirafe({
-    line_chart <- employment_data |>
-      filter(gender %in% c("Male", "Female")) |>
-      group_by(year, gender) |>
-      summarise(total_employed = sum(num_employed, na.rm = TRUE)) |>
-      ungroup() |>
-      ggplot(aes(
-        x = year, 
-        y = total_employed, 
-        color = gender, 
-        group = gender
-      )) +
-      geom_line() +  # Basic ggplot line
-      geom_point() +  # Basic ggplot points
-      scale_color_manual(values = c("Male" = "#feb24c", "Female" = "#bd0026"))+
-      scale_x_continuous(breaks = seq(min(employment_data$year), max(employment_data$year), by = 1)) +
-      ggtitle("Gender Employment Over Time") +
-      theme_classic()+
-      theme(plot.title = element_text(hjust = 0.5))
+    # Aggregate data by year and gender to get the total number of employees per gender
+    aggregated_data <- employment_data %>%
+      group_by(year, gender) %>%
+      summarise(total_employed = sum(num_employed, na.rm = TRUE)) %>%
+      ungroup()  # Remove the grouping after summarising
     
-      girafe(
-        ggobj = line_chart,
-        width_svg = 9, 
-        height_svg = 5,
-        options = list(
-          opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
-          opts_selection(type = "single", css = "opacity: 0.4;"),
-          opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
-        )
+    # Create the line chart with bar chart overlay
+    line_chart <- ggplot(aggregated_data) + 
+      # Add the line chart for male and female employment over time
+      geom_line(aes(x = year, y = total_employed, color = gender, group = gender), size = 1) +
+      geom_point(aes(x = year, y = total_employed, color = gender), size = 3) +
+      # Add the bar chart for male and female employment per year
+      geom_bar(aes(x = year, y = total_employed, fill = gender, 
+                   text = paste0("Gender: ", gender, "<br>Year: ", year, "<br>Total Employed: ", total_employed)),
+               stat = "identity", position = "dodge", width = 0.4, alpha = 0.6) +
+      scale_color_manual(values = c("Male" = "#4fc3f7", "Female" = "#f06292")) +
+      scale_fill_manual(values = c("Male" = "#4fc3f7", "Female" = "#f06292")) +
+      scale_x_continuous(breaks = seq(min(aggregated_data$year), max(aggregated_data$year), by = 1)) +
+      ggtitle("Gender Employment Over Time") +
+      theme_classic() +
+      theme(
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom" 
       )
+    
+    # Create an interactive plot using girafe
+    girafe(
+      ggobj = line_chart,
+      width_svg = 10, 
+      height_svg = 8,
+      options = list(
+        opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
+        opts_selection(type = "single", css = "opacity: 0.4;"),
+        opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
+      )
+    )
   })
   
 }
 
-# Run App ----
-shinyApp(ui, server)
+# Run the application 
+shinyApp(ui = ui, server = server)
