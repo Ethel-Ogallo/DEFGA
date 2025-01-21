@@ -288,12 +288,12 @@ server <- function(input, output, session) {
     global_max <- max(region_map$total_employed, na.rm = TRUE)
     
     # Define breaks and labels for the legend
-    breaks <- c(0, 70000, 150000, 200000, 250000, global_max)
-    labels <- c("0-70k", "70k-150k", "150k-200k", "200k-250k", paste0("> ", format(global_max, big.mark = ",")))
+    breaks <- c(0, 40000, 110000, 180000, 250000, global_max)
+    labels <- c("0-40k", "40k-110k", "110k-180k", "180k-250k", paste0("> ", format(global_max, big.mark = ",")))
     
     # Define color palette using a consistent domain
     pal <- colorBin(
-      palette = c("#ffeda0", "#feb24c", "#f03b20", "#bd0026", "#800026"),
+      palette = c("#f3e5f5", "#e1bee7", "#ce93d8", "#ba68c8", "#8e24aa"),
       bins = breaks,
       domain = c(global_min, global_max),
       na.color = "transparent"
@@ -346,6 +346,22 @@ server <- function(input, output, session) {
       # Transform CRS
       gender_data <- st_transform(gender_data, crs = 4326)
       
+      # Define global min and max for consistency across years
+      global_min2 <- min(gender_map$total_employed, na.rm = TRUE)
+      global_max2 <- max(gender_map$total_employed, na.rm = TRUE)
+      
+      # Define breaks and labels for the legend
+      breaks2 <- c(0, 20000, 50000, 80000, 130000, global_max)
+      labels2 <- c("0-20k", "20k-50k", "50k-80k", "80k-130k", paste0("> ", format(global_max, big.mark = ",")))
+      
+      # Define color palette using a consistent domain
+      pal2 <- colorBin(
+        palette = c("#e0f7fa", "#b3e5fc", "#81d4fa", "#4fc3f7", "#0288d1"),
+        bins = breaks2,
+        domain = c(global_min2, global_max2),
+        na.color = "transparent"
+      )
+      
       output$map <- renderLeaflet({
         leaflet(gender_data) %>%
           addProviderTiles(providers$CartoDB.Positron) %>%
@@ -372,12 +388,12 @@ server <- function(input, output, session) {
           ) %>%
           addLegend(
             position = "bottomright",
-            pal = pal,
-            values = c(global_min, global_max),
+            pal = pal2,
+            values = c(global_min2, global_max2),
             title = "Employment",
             opacity = 0.7,
             labFormat = function(type, cuts, p) {
-              labels
+              labels2
             }
           ) %>%
           setView(lng = 13.333, lat = 47.516, zoom = 6) %>%  # Coordinates of Austria
