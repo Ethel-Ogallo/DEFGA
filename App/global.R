@@ -74,7 +74,7 @@ employment_data <- employment_data |>
     gender = factor(Gender, levels = c("Male", "Female", "total")),
     region = factor(region, levels = c("Rural", "Urban"))
   ) |> 
-  filter(gender %in% c("Male", "Female")) |>   # Remove NAs and filter
+  filter(gender %in% c("Male", "Female")) |>   
   rename(nuts_name = NUTS_NAME, num_employed = num_employ)
 
 region_map <- employment_data |>

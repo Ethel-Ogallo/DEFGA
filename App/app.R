@@ -22,6 +22,7 @@ ui <- navbarPage(
       align-items: center;
       text-align: center;
       color: white;
+      padding: 80px 20px; /* Space around the content */
     ",
       # Add a semi-transparent overlay
       tags$div(
@@ -41,52 +42,66 @@ ui <- navbarPage(
         position: relative;
         z-index: 2;
       ",
-        h1("Development of Employment Figures by Gender, Austria", style = "font-size: 40px;color: #FFDEC7; margin-bottom: 20px;"),
+        h1("Development of Employment Figures by Gender, Austria", style = "font-size: 40px;color: #F0f0f0; margin-bottom: 20px;"),
       )
     ),
     tags$div(
       id = "overview_section", 
       style = "
-      background-color: #2F2D2C ; 
-      padding: 50px;
-      max-width: 100vw; 
-      margin: 0 auto; /* Minimal space */
-      border-radius: 0; /* Remove border radius for continuation */
-      box-shadow: none; /* Remove shadow for seamless look */
-      color: #ffd8be;
+      display: flex;
+      position: relative;
+      justify-content: center;
+      align-items: center;
+      background-color: #f5f5f5; /* Light grey background */
+      padding: 80px 20px; /* Space around the content */
+      height: 90vh; /* Center vertically within the viewport */
+      color: #333;
       font-family: 'Arial', sans-serif;
+      z-index: 2;
     ",
-      # Overview content
-      h3("Overview", style = "font-size: 32px; font-weight: bold; color: #ffd8be; margin-bottom: 20px;"),
-      p("This platform provides insights into employment trends across Austria from 2013 to 2022, with a focus on gender and urban-rural dynamics. The visualizations aim to help policymakers, educators, and researchers in identifying and addressing gender employment gaps."),
-      p("By exploring the trends, the platform supports informed decision-making and contributes to bridging gender-related employment disparities."),
-      h4("Acknowledgment", style = "font-size: 20px; font-weight: bold; margin-top: 20px;color: #ffd8be;"),
-      tags$ul(
-        tags$li("Adana Mirzoyan"),
-        tags$li("Ethel Ogallo")
-      ),
-      h4("Data Sources", style = "font-size: 20px; font-weight: bold;color: #ffd8be; margin-top: 20px;"),
-      tags$ul(
-        tags$li(tags$a(href = "https://www.statistik.at/", target = "_blank", "Statistics Austria")),
-        tags$li(tags$a(href = "https://ec.europa.eu/eurostat", target = "_blank", "Eurostat"))
-      ),
-      p(style = "font-size: 18px; line-height: 1.6;", paste("Last updated on:", Sys.Date())),
-      
-      # Continue button at the bottom of the overview
-      br(),
-      actionButton(
-        inputId = "continue_to_employment", 
-        label = "Continue to Dashboard >>", 
+      tags$div(
         style = "
-        background-color: #9ecae1; /* Same lighter color */
-        color: black; 
-        padding: 10px 20px; 
-        font-size: 16px; 
-        border-radius: 5px; 
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        cursor: pointer;
+        max-width: 800px; /* Restrict content width */
+        line-height: 1.8; /* Improved readability */
+        padding: 20px 30px; /* Breathing space */
+        border-radius: 10px; /* Rounded corners */
+        background-color: transparent; /* No obvious card background */
+      ",
+        # Overview content
+        h3("Overview", style = "font-size:26px; font-weight: bold; color: #333; margin-bottom: 20px;"),
+        p("This platform provides insights into employment trends across Austria from 2013 to 2022, with a focus on 
+          gender and urban-rural dynamics. The visualizations aim to help policymakers, educators, and researchers in 
+          identifying and addressing gender employment gaps.",
+          style = "font-size: 20px;"),
+        p("Acknowledgment", style = "font-size: 20px; font-weight: bold; margin-top: 20px; color: #333;"),
+        tags$ul(
+          style = "font-size: 20px; padding-left: 20px;", # Ensure bullets align correctly
+          tags$li("Adana Mirzoyan"),
+          tags$li("Ethel Ogallo")
+        ),
+        p("Data Sources", style = "font-size: 20px; font-weight: bold; color: #333; margin-top: 20px;"),
+        tags$ul(
+          style = "font-size: 20px; padding-left: 20px;", # Ensure bullets align correctly
+          tags$li(tags$a(href = "https://www.statistik.at/", target = "_blank", "Statistics Austria")),
+          tags$li(tags$a(href = "https://ec.europa.eu/eurostat", target = "_blank", "Eurostat"))
+        ),
+        p(style = "font-size: 18px;", paste("Last updated on:", Sys.Date())),
+        # Continue button at the bottom of the overview
+        br(),
+        actionButton(
+          inputId = "continue_to_employment", 
+          label = "Continue to Dashboard >>", 
+          style = "
+          background-color: #9ecae1; /* Same lighter color */
+          color: black; 
+          padding: 12px 24px; /* Slightly larger button */
+          font-size: 18px; 
+          border-radius: 5px; 
+          border: none;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+          cursor: pointer;
         "
+        )
       )
     )
   ),
@@ -119,7 +134,7 @@ ui <- navbarPage(
               leafletOutput(
                 'map',
                 width = '100%',
-                height = '600px'
+                height = '500px'
               ),
               # spinner.type = 3
             )
@@ -275,7 +290,7 @@ server <- function(input, output, session) {
               labels1
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     } else if (selected_comparison == "Gender") {
@@ -326,7 +341,7 @@ server <- function(input, output, session) {
               labels2
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     }
