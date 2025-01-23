@@ -129,14 +129,12 @@ ui <- navbarPage(
           column(
             5,
             br(),
-            uiOutput("map_title"),
             withSpinner(
               leafletOutput(
                 'map',
                 width = '100%',
                 height = '500px'
-              ),
-              # spinner.type = 3
+              )
             )
           ),
           column(
@@ -185,7 +183,8 @@ ui <- navbarPage(
   )
 )
 
-# Define server logic ----
+
+# SERVER LOGIC ----
 server <- function(input, output, session) {
   # Scroll to the overview section when "Get Started" is clicked
   observeEvent(input$get_started, {
@@ -235,12 +234,9 @@ server <- function(input, output, session) {
     # Transform the CRS to WGS84 (EPSG:4326) if necessary
     data1 <- st_transform(data1, crs = 4326)
     
-    # Define global min and max for consistency across years
-    global_min1 <- min(region_map$total_employed, na.rm = TRUE)
-    global_max1 <- max(region_map$total_employed, na.rm = TRUE)
-    
-    breaks1 <- c(0, 40000, 110000, 180000, 250000, global_max1)
-    labels1 <- c("0-40k", "40k-110k", "110k-180k", "180k-250k", paste0("> ", format(global_max1, big.mark = ","))) 
+    # Define breaks and labels dynamically based on relative percentages
+    breaks1 <- c(0, 1, 3, 5, max(region_map$perc_total_employed_nuts, na.rm = TRUE))
+    labels1 <- c("< 1%", "1-3%" ,"3-5%", "> 5%")
     
     # Define color palettes for Male, Female, and Region
     male_palette <- c("#e0f7fa", "#b3e5fc", "#81d4fa", "#4fc3f7", "#0288d1")
@@ -251,17 +247,16 @@ server <- function(input, output, session) {
     pal <- colorBin(
       palette = if (selected_comparison == "Region") region_palette else if (selected_gender == "Male") male_palette else female_palette,
       bins = breaks1,
-      domain = c(global_min1, global_max1),
+      domain = c(0, max(region_map$perc_total_employed_nuts, na.rm = TRUE)),
       na.color = "transparent"
     )
     
-    # Check the selected comparison (Region or Gender) and render the map accordingly
     if (selected_comparison == "Region") {
       output$map <- renderLeaflet({
         leaflet(data1) %>%
           addProviderTiles(providers$CartoDB.Positron) %>%
           addPolygons(
-            fillColor = ~pal(total_employed),
+            fillColor = ~pal(perc_total_employed_nuts),
             color = "#BDBDBD",
             weight = 0.5,
             opacity = 1,
@@ -269,13 +264,14 @@ server <- function(input, output, session) {
             popup = ~paste0(
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
-              "<b>Employed: </b>", total_employed, "<br>",
+              "<b>Num employed: </b>", total_employed_nuts, "<br>",
+              "<b>Percent Employed: </b>", round(perc_total_employed_nuts, 2), "%<br>",
               "<b>Year: </b>", year
             ),
             highlight = highlightOptions(
               weight = 0.5,
               color = "#BDBDBD",
-              fillColor = "#f03b20",
+              fillColor = "#feb24c",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
@@ -283,35 +279,43 @@ server <- function(input, output, session) {
           addLegend(
             position = "bottomright",
             pal = pal,
-            values = c(global_min1, global_max1),
-            title = "No. employed",
+            values = region_map$perc_total_employed_nuts,
+            title = "% Employed",
             opacity = 0.7,
             labFormat = function(type, cuts, p) {
               labels1
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6.5) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     } else if (selected_comparison == "Gender") {
-      # Filter gender data
       gender_data <- gender_map |> 
         filter(gender == selected_gender, year == selected_maptime)
       
-      # Transform CRS
       gender_data <- st_transform(gender_data, crs = 4326)
       
-      global_min2 <- min(gender_map$total_employed, na.rm = TRUE)
-      global_max2 <- max(gender_map$total_employed, na.rm = TRUE)
-      
-      breaks2 <- c(0, 20000, 50000, 80000, 130000, global_max2)
-      labels2 <- c("0-20k", "20k-50k", "50k-80k", "80k-130k",paste0("> ", format(global_max2, big.mark = ",")))
+      # Adjust breaks dynamically based on selected gender
+      if (selected_gender == "Male") {
+        breaks2 <- c(0, 50, 52, 54, max(gender_map$perc_total_employed_nuts_gender, na.rm = TRUE))
+        labels2 <- c("≤ 50%", "50-52%","52-54%", paste0("> ", format(max(gender_map$perc_total_employed_nuts_gender, na.rm = TRUE), digits = 2), "%"))
+      } else {
+        breaks2 <- c(0, 44, 46, 48, 50)
+        labels2 <- c("≤ 44%", "44-46%", "46-48%","48-50%")
+      }
+   
+      pal_gender <- colorBin(
+        palette = if (selected_gender == "Male") male_palette else female_palette,
+        bins = breaks2,
+        domain = c(0, max(gender_map$perc_total_employed_nuts_gender, na.rm = TRUE)),
+        na.color = "transparent"
+      )
       
       output$map <- renderLeaflet({
         leaflet(gender_data) %>%
           addProviderTiles(providers$CartoDB.Positron) %>%
           addPolygons(
-            fillColor = ~pal(total_employed),
+            fillColor = ~pal_gender(perc_total_employed_nuts_gender),
             color = "#BDBDBD",
             weight = 0.5,
             opacity = 1,
@@ -320,73 +324,140 @@ server <- function(input, output, session) {
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
               "<b>Gender: </b>", gender, "<br>",
-              "<b>Employed: </b>", total_employed, "<br>",
+              "<b>Num employed: </b>", total_employed_nuts, "<br>",
+              "<b>Percent Employed: </b>", round(perc_total_employed_nuts_gender, 2), "%<br>",
               "<b>Year: </b>", year
             ),
             highlight = highlightOptions(
               weight = 0.5,
               color = "#BDBDBD",
-              fillColor = "#f03b20",
+              fillColor = "#feb24c",
               fillOpacity = 0.7,
               bringToFront = TRUE
             )
           ) %>%
           addLegend(
             position = "bottomright",
-            pal = pal,
-            values = c(global_min2, global_max2),
-            title = "No. employed",
+            pal = pal_gender,
+            values = gender_map$perc_total_employed_nuts_gender,
+            title = "% Employed",
             opacity = 0.7,
             labFormat = function(type, cuts, p) {
               labels2
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6.5) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     }
   })
   
-  # Employment line chart----
-  output$line_chart <- renderGirafe({
-    # Aggregate data by year and gender to get the total number of employees per gender
-    aggregated_data <- employment_data %>%
-      group_by(year, gender) %>%
-      summarise(total_employed = sum(num_employed, na.rm = TRUE)) %>%
-      ungroup()  # Remove the grouping after summarising
-    
-    # Create the line chart with bar chart overlay
-    line_chart <- ggplot(aggregated_data) + 
-      # Add the line chart for male and female employment over time
-      geom_line(aes(x = year, y = total_employed, color = gender, group = gender), size = 1) +
-      geom_point(aes(x = year, y = total_employed, color = gender), size = 3) +
-      # Add the bar chart for male and female employment per year
-      geom_bar(aes(x = year, y = total_employed, fill = gender, 
-                   text = paste0("Gender: ", gender, "<br>Year: ", year, "<br>Total Employed: ", total_employed)),
-               stat = "identity", position = "dodge", width = 0.4, alpha = 0.6) +
-      scale_color_manual(values = c("Male" = "#4fc3f7", "Female" = "#f06292")) +
-      scale_fill_manual(values = c("Male" = "#4fc3f7", "Female" = "#f06292")) +
-      scale_x_continuous(breaks = seq(min(aggregated_data$year), max(aggregated_data$year), by = 1)) +
-      ggtitle("Gender Employment Over Time") +
-      theme_classic() +
-      theme(
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "bottom" 
-      )
-    
-    # Create an interactive plot using girafe
-    girafe(
-      ggobj = line_chart,
-      width_svg = 10, 
-      height_svg = 8,
-      options = list(
-        opts_hover(css = "stroke-width: 3; cursor: pointer; fill:grey;"),
-        opts_selection(type = "single", css = "opacity: 0.4;"),
-        opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
-      )
-    )
-  })
   
+  # Employment line chart----
+  observeEvent(c(input$comparison, input$gender, input$map_time), {
+    selected_comparison <- input$comparison
+    selected_gender <- ifelse(is.null(input$gender), "Male", input$gender)
+    selected_maptime <- input$map_time
+    
+    output$line_chart <- renderGirafe({
+      # Define a function to darken the color
+      darken_color <- function(color, factor = 0.7) {
+        col <- col2rgb(color) / 255
+        col <- col * factor  # Darken the color by a factor
+        rgb(col[1], col[2], col[3], maxColorValue = 1)
+      }
+      
+      # Define base colors for gender
+      base_colors <- c(
+        "Male" = "#81d4fa",  # Light blue for Male
+        "Female" = "#f48fb1"  # Light pink for Female
+      )
+      
+      # Apply highlighting logic based on selected year or gender
+      employment_data2 <- employment_data2 %>%
+        mutate(
+          highlight_color = case_when(
+            year == selected_maptime & gender == selected_gender ~ "highlight",  # Both selected
+            year == selected_maptime ~ "year_selected",  # Only year selected
+            gender == selected_gender ~ "gender_selected",  # Only gender selected
+            TRUE ~ "default"  # No selection
+          ),
+          # Apply darkened color for highlighting, or use default color
+          bar_color = case_when(
+            highlight_color == "highlight" ~ darken_color(base_colors[gender], factor = 0.7),  # Darken the color for both gender and year
+            highlight_color == "year_selected" & gender == "Male" ~ darken_color(base_colors["Male"], factor = 0.7),  # Darken male bars for year
+            highlight_color == "year_selected" & gender == "Female" ~ darken_color(base_colors["Female"], factor = 0.7),  # Darken female bars for year
+            highlight_color == "gender_selected" & gender == "Male" ~ darken_color(base_colors["Male"], factor = 0.7),  # Darken male bars for gender
+            highlight_color == "gender_selected" & gender == "Female" ~ darken_color(base_colors["Female"], factor = 0.7),  # Darken female bars for gender
+            TRUE ~ base_colors[gender]  # Default to gender's color
+          )
+        )
+      
+      # Create the main plot without the legend
+      line_chart <- ggplot(employment_data2) +
+        geom_col_interactive(
+          aes(
+            x = year,
+            y = perc_total_employed_gender,
+            fill = bar_color,  # Use dynamically calculated bar color
+            tooltip = paste0(
+              "Gender: ", gender,
+              "<br>Year: ", year,
+              "<br>Number employed: ", total_employed_gender,
+              "<br>Percentage: ", round(perc_total_employed_gender, 2), "%"
+            ),
+            data_id = paste0(year, "_", gender)
+          ),
+          stat = "identity",
+          position = "dodge",
+          width = 0.5,
+          alpha = 0.8  # Slightly increase opacity for the bars
+        ) +
+        scale_x_continuous(
+          breaks = seq(min(employment_data2$year), max(employment_data2$year), by = 1),
+          name = "Year"
+        ) +
+        scale_y_continuous(name = "Percentage of Total Employed") +
+        scale_fill_identity() +  # Use the dynamically calculated fill colors for the bars
+        theme_classic() +
+        theme(
+          plot.title = element_text(hjust = 0.5, face = "bold"),
+          legend.position = "none",  # Remove the legend from the main plot
+          legend.title = element_text(face = "bold"),
+          legend.text = element_text(size = 12)
+        )
+      
+      # Create a separate legend
+      legend <- ggplot(data.frame(gender = c("Male", "Female"), fill = base_colors)) +
+        geom_point(aes(x = gender, y = 1, color = gender), size = 5) +  # Larger points (size 5)
+        geom_text(aes(x = gender, y = 1, label = gender), size = 4, color = "black", hjust = -0.3) +  # Adjust label to the left
+        scale_color_manual(values = base_colors) +  # Apply base colors
+        theme_void() +
+        theme(
+          legend.position = "none"  # Remove the legend
+        )
+
+      
+      # Combine the chart and the legend
+      combined_plot <- plot_grid(line_chart, legend, ncol = 1, rel_heights = c(1, 0.2))
+      
+      # Return the combined plot as a girafe object
+      girafe(
+        ggobj = combined_plot,
+        width_svg = 10,
+        height_svg = 8,
+        options = list(
+          opts_hover(css = "stroke-width: 3; cursor: pointer; fill: grey;"),
+          opts_selection(
+            type = "single",  # Single selection mode
+            css = "stroke: darkblue; stroke-width: 2;",
+            only_shiny = TRUE
+          ),
+          opts_tooltip(css = "background-color: white; color: black; font-size: 14px; padding: 5px;")
+        )
+      )
+    })
+  })
 }
 
 # Run the application 
