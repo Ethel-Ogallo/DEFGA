@@ -113,7 +113,7 @@ region_map <- employment_data2 |>
 
 #3.4 gender map----
 gender_map <- employment_data2 |>
-  group_by(year, nuts_name, gender, region, total_employed_nuts, perc_total_employed_nuts_gender) |>
+  group_by(year, nuts_name, gender, region, total_employed_nuts, total_employed_nuts_gender, perc_total_employed_nuts_gender) |>
   summarize(geometry = st_union(geometry))  |>
   ungroup() |> 
   st_as_sf() 

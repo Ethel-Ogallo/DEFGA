@@ -1,4 +1,5 @@
 source('global.R')
+
 # UI-----
 ui <- navbarPage(
   title = "DEFGA",
@@ -264,7 +265,7 @@ server <- function(input, output, session) {
             popup = ~paste0(
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
-              "<b>Num employed: </b>", total_employed_nuts, "<br>",
+              "<b>Num employed: </b>", scales::comma(total_employed_nuts), "<br>",
               "<b>Percent Employed: </b>", round(perc_total_employed_nuts, 2), "%<br>",
               "<b>Year: </b>", year
             ),
@@ -286,7 +287,7 @@ server <- function(input, output, session) {
               labels1
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6.5) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     } else if (selected_comparison == "Gender") {
@@ -324,7 +325,7 @@ server <- function(input, output, session) {
               "<b>NUTS3: </b>", nuts_name, "<br>",
               "<b>Type: </b>", region, "<br>",
               "<b>Gender: </b>", gender, "<br>",
-              "<b>Num employed: </b>", total_employed_nuts, "<br>",
+              "<b>Num employed: </b>", scales::comma(total_employed_nuts_gender), "<br>",
               "<b>Percent Employed: </b>", round(perc_total_employed_nuts_gender, 2), "%<br>",
               "<b>Year: </b>", year
             ),
@@ -346,7 +347,7 @@ server <- function(input, output, session) {
               labels2
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6.5) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     }
@@ -361,7 +362,7 @@ server <- function(input, output, session) {
     
     output$line_chart <- renderGirafe({
       # Define a function to darken the color
-      darken_color <- function(color, factor = 0.7) {
+      darken_color <- function(color, factor = 0.9) {
         col <- col2rgb(color) / 255
         col <- col * factor  # Darken the color by a factor
         rgb(col[1], col[2], col[3], maxColorValue = 1)
@@ -378,13 +379,13 @@ server <- function(input, output, session) {
         mutate(
           highlight_color = case_when(
             year == selected_maptime & gender == selected_gender ~ "highlight",  # Both selected
-            year == selected_maptime ~ "year_selected",  # Only year selected
+            #year == selected_maptime ~ "year_selected",  # Only year selected
             gender == selected_gender ~ "gender_selected",  # Only gender selected
             TRUE ~ "default"  # No selection
           ),
           # Apply darkened color for highlighting, or use default color
           bar_color = case_when(
-            highlight_color == "highlight" ~ darken_color(base_colors[gender], factor = 0.7),  # Darken the color for both gender and year
+            #highlight_color == "highlight" ~ darken_color(base_colors[gender], factor = 1),  # Darken the color for both gender and year
             highlight_color == "year_selected" & gender == "Male" ~ darken_color(base_colors["Male"], factor = 0.7),  # Darken male bars for year
             highlight_color == "year_selected" & gender == "Female" ~ darken_color(base_colors["Female"], factor = 0.7),  # Darken female bars for year
             highlight_color == "gender_selected" & gender == "Male" ~ darken_color(base_colors["Male"], factor = 0.7),  # Darken male bars for gender
@@ -403,7 +404,7 @@ server <- function(input, output, session) {
             tooltip = paste0(
               "Gender: ", gender,
               "<br>Year: ", year,
-              "<br>Number employed: ", total_employed_gender,
+              "<br>Number employed: ", scales::comma(total_employed_gender),  # Format with commas
               "<br>Percentage: ", round(perc_total_employed_gender, 2), "%"
             ),
             data_id = paste0(year, "_", gender)
@@ -417,11 +418,17 @@ server <- function(input, output, session) {
           breaks = seq(min(employment_data2$year), max(employment_data2$year), by = 1),
           name = "Year"
         ) +
-        scale_y_continuous(name = "Percentage of Total Employed") +
+        scale_y_continuous(
+          breaks = seq(0, 100, by = 10),  # Specify breaks at every 10% from 0 to 100
+          limits = c(0, 70),             # Set the limits to match the range of percentages
+          name = "Percentage of Total Employed"
+        ) +
         scale_fill_identity() +  # Use the dynamically calculated fill colors for the bars
         theme_classic() +
         theme(
           plot.title = element_text(hjust = 0.5, face = "bold"),
+          axis.title.x = element_text(size = 14),  # Adjust x-axis title size
+          axis.title.y = element_text(size = 14),   # Adjust y-axis title size
           legend.position = "none",  # Remove the legend from the main plot
           legend.title = element_text(face = "bold"),
           legend.text = element_text(size = 12)
@@ -445,7 +452,7 @@ server <- function(input, output, session) {
       girafe(
         ggobj = combined_plot,
         width_svg = 10,
-        height_svg = 8,
+        height_svg = 9,
         options = list(
           opts_hover(css = "stroke-width: 3; cursor: pointer; fill: grey;"),
           opts_selection(
