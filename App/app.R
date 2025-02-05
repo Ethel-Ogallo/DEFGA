@@ -86,7 +86,7 @@ ui <- navbarPage(
           tags$li(tags$a(href = "https://www.statistik.at/", target = "_blank", "Statistics Austria")),
           tags$li(tags$a(href = "https://ec.europa.eu/eurostat", target = "_blank", "Eurostat"))
         ),
-        p(style = "font-size: 18px;", paste("Last updated on:", Sys.Date())),
+        p(style = "font-size: 18px;", paste("Last updated on: 24-01-2025")),
         # Continue button at the bottom of the overview
         br(),
         actionButton(
@@ -130,6 +130,10 @@ ui <- navbarPage(
           column(
             5,
             br(),
+            h3("Employment Distribution Across Austria",style = "color: black; text-align: center;"),
+            br(),
+            uiOutput("map_description"),
+            br(),
             withSpinner(
               leafletOutput(
                 'map',
@@ -170,6 +174,10 @@ ui <- navbarPage(
           ),
           column(
             5,
+            br(),
+            h3("Employment Trends by Gender Over Time", style = "color: black; text-align: center;"),
+            uiOutput("bar_chart_description"),
+            br(),
             withSpinner(
               girafeOutput(
                 'line_chart',
@@ -227,6 +235,16 @@ server <- function(input, output, session) {
     selected_comparison <- input$comparison
     selected_gender <- input$gender
     selected_maptime <- input$map_time
+    
+    output$map_description <- renderText({
+      if (input$comparison == "Region") {
+        HTML('<p style="color: black;">This map shows the percentage of total employed per NUTS3 region, calculated as the total employed in that NUTS3 region for the selected year divided by the total employed in Austria that year. Click on a region to read more.</p>')
+      } else {
+        HTML(paste0('<p style="color: black;">This map shows the percentage of ', input$gender, 
+                    ' employment in each NUTS3 region, calculated as the total ', input$gender, 
+                    ' employed in that NUTS3 region for the selected year divided by the total employed in that NUTS3 region that year.</p>'))
+      }
+    })
     
     # Filter the data based on the selected year
     data1 <- region_map |> 
@@ -287,7 +305,7 @@ server <- function(input, output, session) {
               labels1
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     } else if (selected_comparison == "Gender") {
@@ -347,7 +365,7 @@ server <- function(input, output, session) {
               labels2
             }
           ) %>%
-          setView(lng = 13.333, lat = 47.516, zoom = 6) %>%
+          setView(lng = 13.333, lat = 47.516, zoom = 7) %>%
           setMaxBounds(lng1 = 9.5, lat1 = 46.5, lng2 = 17.0, lat2 = 49.0)
       })
     }
@@ -359,6 +377,16 @@ server <- function(input, output, session) {
     selected_comparison <- input$comparison
     selected_gender <- ifelse(is.null(input$gender), "Male", input$gender)
     selected_maptime <- input$map_time
+    
+    output$bar_chart_description <- renderText({
+      if (input$comparison == "Region") {
+        HTML('<p style="color: black;">This bar chart shows the overall employment distribution over time, allowing for a comparison of employment trends across different years. Bars will be the default color when year is selected.</p>')
+      } else {
+        HTML(paste0('<p style="color: black;">This bar chart highlights the employment trends of ', input$gender, 
+               ' individuals over the years. Bars corresponding to the selected gender will be highlighted in a darker color to emphasize their representation.Bars will be the default color when year is selected</p>'))
+      }
+    })
+
     
     output$line_chart <- renderGirafe({
       # Define a function to darken the color
@@ -419,10 +447,10 @@ server <- function(input, output, session) {
           name = "Year"
         ) +
         scale_y_continuous(
-          breaks = seq(0, 100, by = 10),  # Specify breaks at every 10% from 0 to 100
-          limits = c(0, 70),             # Set the limits to match the range of percentages
+          breaks = seq(40, 60, by = 1),  # Adjusted for better visibility
           name = "Percentage of Total Employed"
         ) +
+        coord_cartesian(ylim = c(45, 55)) +
         scale_fill_identity() +  # Use the dynamically calculated fill colors for the bars
         theme_classic() +
         theme(
